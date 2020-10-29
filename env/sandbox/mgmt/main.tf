@@ -1,5 +1,5 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# sandbox/mgmt-vpc
+# sandbox/mgmt
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 terraform {
   required_version = ">= 0.12.26"
@@ -10,9 +10,9 @@ provider "aws" {
 }
 
 ##############################
-# get state of sandbox/app-vpc
+# get state data 
 ##############################
-data "terraform_remote_state" "tfstate" {
+data "terraform_remote_state" "app_vpc" {
   backend = "s3"
   config = {
     region = var.region
@@ -22,45 +22,14 @@ data "terraform_remote_state" "tfstate" {
 }
 
 locals {
-  vpc_id                      = data.terraform_remote_state.tfstate.outputs.vpc_id
-  public_subnet_ids           = data.terraform_remote_state.tfstate.outputs.public_subnets
-  public_subnets_cidr_blocks  = data.terraform_remote_state.tfstate.outputs.public_subnets_cidr_blocks
-  private_subnet_ids          = data.terraform_remote_state.tfstate.outputs.private_subnets
-  private_subnets_cidr_blocks = data.terraform_remote_state.tfstate.outputs.private_subnets_cidr_blocks
-  database_subnets            = data.terraform_remote_state.tfstate.outputs.database_subnets
+  vpc_id                      = data.terraform_remote_state.app_vpc.outputs.vpc_id
+  public_subnet_ids           = data.terraform_remote_state.app_vpc.outputs.public_subnets
+  public_subnets_cidr_blocks  = data.terraform_remote_state.app_vpc.outputs.public_subnets_cidr_blocks
+  private_subnet_ids          = data.terraform_remote_state.app_vpc.outputs.private_subnets
+  private_subnets_cidr_blocks = data.terraform_remote_state.app_vpc.outputs.private_subnets_cidr_blocks
+  database_subnets            = data.terraform_remote_state.app_vpc.outputs.database_subnets
 }
-##############################
-# security group for bastions
-##############################
-resource "aws_security_group" "allow_ssh_rdp" {
-  name        = "${var.name_prefix}-bastion-sg"
-  description = "Allow ssh and rdp connections"
-  vpc_id      = local.vpc_id
 
-  ingress {
-    from_port   = 3389
-    to_port     = 3389
-    protocol    = "tcp"
-    cidr_blocks = ["73.39.184.79/32"]
-  }
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["73.39.184.79/32"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "${var.name_prefix}-bastion-sg"
-  }
-}
 ###############
 # Bastion Linux
 ###############
@@ -75,7 +44,7 @@ module "ec2_linux" {
   instance_type = "t2.medium"   # 
 
   subnet_id              = local.public_subnet_ids[0]
-  vpc_security_group_ids = [aws_security_group.allow_ssh_rdp.id]
+  vpc_security_group_ids = [aws_security_group.linux_bastion.id]
   key_name              = var.key_pair
 
   # root_block_device = [
@@ -99,6 +68,32 @@ module "ec2_linux" {
     "Name" = "${var.name_prefix}-linux-bastion"
   }
 }
+###################################
+# security group for linux bastions
+###################################
+resource "aws_security_group" "linux_bastion" {
+  name        = "${var.name_prefix}-linux-bastion-sg"
+  description = "Allow ssh and rdp connections"
+  vpc_id      = local.vpc_id
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["73.39.184.79/32"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.name_prefix}-bastion-linux-sg"
+  }
+}
 #################
 # Bastion Windows
 #################
@@ -113,11 +108,37 @@ module "ec2_windows" {
   instance_type = "t3a.medium"   # 
 
   subnet_id              = local.public_subnet_ids[0]
-  vpc_security_group_ids = [aws_security_group.allow_ssh_rdp.id]
+  vpc_security_group_ids = [aws_security_group.win_bastion.id]
   key_name              = var.key_pair
 
   tags = {
     "Env"  = "Private"
     "Name" = "${var.name_prefix}--windows-bastion"
+  }
+}
+###################################
+# security group for windows bastions
+###################################
+resource "aws_security_group" "win_bastion" {
+  name        = "${var.name_prefix}-win-bastion-sg"
+  description = "Allow ssh and rdp connections"
+  vpc_id      = local.vpc_id
+
+  ingress {
+    from_port   = 3389
+    to_port     = 3389
+    protocol    = "tcp"
+    cidr_blocks = ["73.39.184.79/32"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.name_prefix}-bastion-win-sg"
   }
 }

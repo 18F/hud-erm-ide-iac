@@ -11,7 +11,20 @@ provider "aws" {
 ##############################
 # get state of sandbox/app-vpc
 ##############################
-data "terraform_remote_state" "tfstate" {
+data "terraform_remote_state" "mgmt" {
+  backend = "s3"
+  config = {
+    region = var.region
+    key    = "mgmt/terraform.tfstate"
+    bucket = "ses-ide-sandb-terraform-state"
+  }
+}
+locals {
+  linux_bastion_private_ip = data.terraform_remote_state.mgmt.outputs.linux_bastion_private_ip
+  windows_bastion_private_ip = data.terraform_remote_state.mgmt.outputs.windows_bastion_private_ip
+}
+
+data "terraform_remote_state" "app_vpc" {
   backend = "s3"
   config = {
     region = var.region
@@ -21,12 +34,12 @@ data "terraform_remote_state" "tfstate" {
 }
 
 locals {
-  vpc_id                      = data.terraform_remote_state.tfstate.outputs.vpc_id
-  public_subnet_ids           = data.terraform_remote_state.tfstate.outputs.public_subnets
-  public_subnets_cidr_blocks  = data.terraform_remote_state.tfstate.outputs.public_subnets_cidr_blocks
-  private_subnet_ids          = data.terraform_remote_state.tfstate.outputs.private_subnets
-  private_subnets_cidr_blocks = data.terraform_remote_state.tfstate.outputs.private_subnets_cidr_blocks
-  database_subnets_ids        = data.terraform_remote_state.tfstate.outputs.database_subnets
+  vpc_id                      = data.terraform_remote_state.app_vpc.outputs.vpc_id
+  public_subnet_ids           = data.terraform_remote_state.app_vpc.outputs.public_subnets
+  public_subnets_cidr_blocks  = data.terraform_remote_state.app_vpc.outputs.public_subnets_cidr_blocks
+  private_subnet_ids          = data.terraform_remote_state.app_vpc.outputs.private_subnets
+  private_subnets_cidr_blocks = data.terraform_remote_state.app_vpc.outputs.private_subnets_cidr_blocks
+  database_subnets_ids        = data.terraform_remote_state.app_vpc.outputs.database_subnets
 }
 ####################################
 # security group for Agency Postgres
@@ -48,7 +61,10 @@ resource "aws_security_group" "postgres-sg" {
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
-    cidr_blocks = ["10.20.1.171/32", "10.20.1.97/32"]
+    cidr_blocks = [
+      "${local.linux_bastion_private_ip[0]}/32", 
+      "${local.windows_bastion_private_ip[0]}/32"
+    ]
   }
 
   egress {

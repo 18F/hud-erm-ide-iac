@@ -7,7 +7,7 @@
 resource "aws_lb_target_group" "my_tg" {
   health_check {
     interval            = 10
-    path                = "/"
+    path                = "/login"
     protocol            = "HTTP"
     timeout             = 5
     healthy_threshold   = 5
@@ -32,11 +32,6 @@ resource "aws_lb_target_group_attachment" "my_tg_attachment" {
   port             = 80
 }
 
-# resource "aws_lb_target_group_attachment" "my-lb-target-group-attachment2" {
-#   target_group_arn = aws_lb_target_group.my_tg.arn
-#   target_id        = var.instance2_id
-#   port             = 80
-# }
 ###########################
 # application load balancer
 ###########################
@@ -63,21 +58,26 @@ resource "aws_lb_listener" "lb_listener_http" {
   protocol          = "HTTP"
 
   default_action {
+    type             = "redirect"
+    target_group_arn = aws_lb_target_group.my_tg.arn
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+resource "aws_lb_listener" "lb_listener_https" {
+  load_balancer_arn = aws_lb.my_lb.arn
+  port              = 443
+  protocol          = "HTTPS"
+  certificate_arn = var.certificate_arn
+
+  default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.my_tg.arn
   }
 }
-# resource "aws_lb_listener" "lb_listener_https" {
-#   load_balancer_arn = aws_lb.my_lb.arn
-#   port              = 443
-#   protocol          = "HTTPS"
-#   cerfificate_arn = "PASS IN AS VAR FROM CALLER"
-
-#   default_action {
-#     type             = "forward"
-#     target_group_arn = aws_lb_target_group.my_tg.arn
-#   }
-# }
 ###########################
 # lb security group
 ###########################

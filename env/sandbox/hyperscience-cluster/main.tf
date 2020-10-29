@@ -10,9 +10,33 @@ provider "aws" {
 }
 
 ##############################
-# get state of sandbox/app-vpc
+# get state data
 ##############################
-data "terraform_remote_state" "tfstate" {
+data "terraform_remote_state" "hyperscience_s3" {
+  backend = "s3"
+  config = {
+    region = var.region
+    key    = "hyperscience-s3/terraform.tfstate"
+    bucket = "ses-ide-sandb-terraform-state"
+  }
+}
+locals {
+  aws_iam_s3_instance_profile = data.terraform_remote_state.hyperscience_s3.outputs.aws_iam_s3_instance_profile
+}
+
+data "terraform_remote_state" "mgmt" {
+  backend = "s3"
+  config = {
+    region = var.region
+    key    = "mgmt/terraform.tfstate"
+    bucket = "ses-ide-sandb-terraform-state"
+  }
+}
+locals {
+  linux_bastion_private_ip = data.terraform_remote_state.mgmt.outputs.linux_bastion_private_ip
+}
+
+data "terraform_remote_state" "app_vpc" {
   backend = "s3"
   config = {
     region = var.region
@@ -22,14 +46,17 @@ data "terraform_remote_state" "tfstate" {
 }
 
 locals {
-  vpc_id                      = data.terraform_remote_state.tfstate.outputs.vpc_id
-  public_subnet_ids           = data.terraform_remote_state.tfstate.outputs.public_subnets
-  public_subnets_cidr_blocks  = data.terraform_remote_state.tfstate.outputs.public_subnets_cidr_blocks
-  private_subnet_ids          = data.terraform_remote_state.tfstate.outputs.private_subnets
-  private_subnets_cidr_blocks = data.terraform_remote_state.tfstate.outputs.private_subnets_cidr_blocks
-  database_subnets_ids        = data.terraform_remote_state.tfstate.outputs.database_subnets
+  vpc_id                      = data.terraform_remote_state.app_vpc.outputs.vpc_id
+  public_subnet_ids           = data.terraform_remote_state.app_vpc.outputs.public_subnets
+  public_subnets_cidr_blocks  = data.terraform_remote_state.app_vpc.outputs.public_subnets_cidr_blocks
+  private_subnet_ids          = data.terraform_remote_state.app_vpc.outputs.private_subnets
+  private_subnets_cidr_blocks = data.terraform_remote_state.app_vpc.outputs.private_subnets_cidr_blocks
+  database_subnets_ids        = data.terraform_remote_state.app_vpc.outputs.database_subnets
 }
 
+##############################
+# setup maps for instance data
+##############################
 locals {
   hyperscience_data = {
     "${var.name_prefix}-01" = {
@@ -66,40 +93,45 @@ locals {
 }
 
 #############################
-# hyperscience-ec2s instances
+# hyperscience-ec2 instances
 #############################
 module "hyperscience_ec2" {
   source = "../../../modules/ec2"
 
   instance_data = local.hyperscience_data
 
-  name_prefix          = var.name_prefix
-  key_name             = var.key_name
-  iam_instance_profile = "ide-sandb-hyperscience01-iam-instance-profile"
-  vpc_id               = local.vpc_id # for security group
+  name_prefix             = var.name_prefix
+  key_name                = var.key_name
+  iam_instance_profile    = local.aws_iam_s3_instance_profile 
+  vpc_id                  = local.vpc_id                    # for security group
+  cidr_blocks_ingress_ssh = ["${local.linux_bastion_private_ip[0]}/32"] 
+  root_block_device_size = "100" 
 }
-#######################
+########################
 # trainer-ec2 instances
-#######################
+########################
 module "trainer_ec2" {
   source = "../../../modules/ec2"
 
   instance_data = local.trainer_data
 
-  name_prefix          = "${var.name_prefix}-trainier"
-  key_name             = var.key_name
-  iam_instance_profile = "ide-sandb-hyperscience01-iam-instance-profile"
-  vpc_id               = local.vpc_id # for security group
+  name_prefix             = "${var.name_prefix}-trainier"
+  key_name                = var.key_name
+  iam_instance_profile    = local.aws_iam_s3_instance_profile 
+  vpc_id                  = local.vpc_id                    # for security group
+  cidr_blocks_ingress_ssh = ["${local.linux_bastion_private_ip[0]}/32"] 
+  root_block_device_size = "100"
 }
-###########################
+############################
 # application load balancer
-###########################
+############################
 module "alb" {
   source            = "../../../modules/alb"
   name_prefix       = var.name_prefix
   vpc_id            = local.vpc_id
   instance_ids      = module.hyperscience_ec2.instance_ids
   public_subnet_ids = local.public_subnet_ids
+  certificate_arn   = "arn:aws-us-gov:acm:us-gov-west-1:508864297691:certificate/89f91cb7-7a37-4e05-9d29-c78c665ce02a"
 }
 
 

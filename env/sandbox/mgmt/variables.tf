@@ -9,7 +9,7 @@ variable "region" {
 variable "name_prefix" {
   type        = string
   description = "Used for overall naming of resources"
-  default     = "ide-sandb-hyperscience01"
+  default     = "ide-sandb-hyperscience"
 }
 
 variable "key_pair" {

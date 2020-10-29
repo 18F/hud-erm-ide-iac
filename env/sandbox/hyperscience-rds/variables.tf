@@ -1,5 +1,5 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# variables for sandbox/hyperscience
+# variables for sandbox/hyperscience-rds
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 variable "region" {
   type    = string
@@ -9,7 +9,7 @@ variable "region" {
 variable "name_prefix" {
   type        = string
   description = "Used for overall naming of resources"
-  default     = "ide-sandb-hyperscience01"
+  default     = "ide-sandb-hyperscience"
 }
 
 variable "key_pair" {
@@ -26,17 +26,4 @@ variable "db_password" {
   type = string
 }
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# variables for sandbox/microservice-rds
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-# variable "region" {
-#   type    = string
-#   default = "us-gov-west-1"
-# }
-
-# variable "env" {
-#   type    = string
-#   default = "dev"
-# }
 
