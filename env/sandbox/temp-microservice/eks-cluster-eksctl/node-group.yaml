@@ -1,0 +1,22 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: ide-sandb-ms-ekscluster
+  region: us-gov-west-1
+
+nodeGroups:
+  - name: ng-1-workers
+    labels: { role: workers }
+    instanceType: t3.large
+    desiredCapacity: 3
+    volumeSize: 80
+    privateNetworking: true
+    ssh: # use existing EC2 key
+      publicKeyName: ses-ide-sandb-bastion
+  # - name: ng-2-builders
+  #   labels: { role: builders }
+  #   instanceType: t3.large
+  #   desiredCapacity: 2
+  #   volumeSize: 100
+  #   privateNetworking: true

@@ -1,0 +1,34 @@
+# An example of ClusterConfig object using an existing VPC:
+--- 
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: ide-sandb-ms-ekscluster
+  region: us-gov-west-1
+
+vpc:
+  id: "vpc-0aa69c71502e5e0cf"  # (optional, must match VPC ID used for each subnet below)
+  cidr: "10.20.0.0/16"       # (optional, must match CIDR used by the given VPC)
+  subnets:
+    # must provide 'private' and/or 'public' subnets by availibility zone as shown
+    private:
+      us-gov-west-1a:
+        id: "subnet-0ea3ae0bb189c66ed"
+        cidr: "10.20.11.0/24" # (optional, must match CIDR used by the given subnet)
+
+      us-gov-west-1b:
+        id: "subnet-0c415f355fe23d322"
+        cidr: "10.20.12.0/24"  # (optional, must match CIDR used by the given subnet)
+
+      us-gov-west-1c:
+        id: "subnet-024cd27e0696c8285"
+        cidr: "10.20.13.0/24"   # (optional, must match CIDR used by the given subnet)
+
+nodeGroups:
+  - name: ng-1
+    instanceType: t3.large
+    desiredCapacity: 3
+    privateNetworking: true # if only 'Private' subnets are given, this must be enabled
+    ssh: # use existing EC2 key
+      publicKeyName: ses-ide-sandb-bastion

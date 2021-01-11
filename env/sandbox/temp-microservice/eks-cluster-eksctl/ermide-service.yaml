@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ermide
+  annotations:
+    # Note that the backend talks over HTTP.
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
+    # # TODO: Fill in with the ARN of your certificate.
+    # service.beta.kubernetes.io/aws-load-balancer-ssl-cert: arn:aws-us-gov:acm:us-gov-west-1:306881650362:certificate/9550f720-8547-45c2-a771-3aff81bf45c9
+    # # Only run SSL on the port named "https" below.
+    # service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "https"
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9090
+  # - name: https
+  #   port: 80
+  #   targetPort: 9090
+  selector:
+    name: ermide
+
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: ermide
+#   namespace: default
+#   labels:
+#     app: ermide
+#   annotations:
+#     service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+# spec:
+#   externalTrafficPolicy: Local
+#   ports:
+#   - name: http
+#     port: 80
+#     protocol: TCP
+#     targetPort: 9090
+#   selector:
+#     app: ermide
+#   type: LoadBalancer

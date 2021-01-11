@@ -96,7 +96,8 @@ locals {
 # hyperscience-ec2 instances
 #############################
 module "hyperscience_ec2" {
-  source = "../../../modules/ec2"
+  # source = "../../../modules/ide-ec2"
+  source = "git@github.com:18F/hud-erm-ide-iac-modules.git//ide-ec2"
 
   instance_data = local.hyperscience_data
 
@@ -111,7 +112,7 @@ module "hyperscience_ec2" {
 # trainer-ec2 instances
 ########################
 module "trainer_ec2" {
-  source = "../../../modules/ec2"
+  source = "git@github.com:18F/hud-erm-ide-iac-modules.git//ide-ec2"
 
   instance_data = local.trainer_data
 
@@ -126,7 +127,7 @@ module "trainer_ec2" {
 # application load balancer
 ############################
 module "alb" {
-  source            = "../../../modules/alb"
+  source            = "git@github.com:18F/hud-erm-ide-iac-modules.git//alb"
   name_prefix       = var.name_prefix
   vpc_id            = local.vpc_id
   instance_ids      = module.hyperscience_ec2.instance_ids
