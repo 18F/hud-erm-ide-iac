@@ -36,9 +36,9 @@ inputs = {
   private_subnet_ids    = dependency.vpc.outputs.private_subnet_ids
   public_subnet_ids    = dependency.vpc.outputs.public_subnet_ids
   
-  min_size = 1
-  max_size = 2
-  desired_capacity = 1
+  min_size = 3
+  max_size = 10
+  desired_capacity = 3
 
   # user_data = <<-EOF
   #       #!/bin/bash
