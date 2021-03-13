@@ -56,6 +56,11 @@ inputs = {
       username = "amit.sharma"
       groups   = ["system:masters"]
     },
+    {
+      userarn  = "arn:aws-us-gov:iam::508864297691:user/michael.jones-ermide-sandbox"
+      username = "michael.jones-ermide-sandbox"
+      groups   = ["system:masters"]
+    },
   ]
 
   map_roles = [
